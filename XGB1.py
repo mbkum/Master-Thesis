@@ -257,7 +257,7 @@ print("Train : ",np.mean(np.abs((Y_train - predict_train) / Y_train)) * 100)
 print("Test  : ",np.mean(np.abs((Y_test - predict_test) / Y_test)) * 100)
 
 
-# In[16]:
+# In[14]:
 
 # Visualization of the feature importance
 plt.figure(figsize=(12, 6))

@@ -2,25 +2,23 @@
 # coding: utf-8
 
 # In[1]:
-
+#Calling libraries
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 import math
 from sklearn.metrics import explained_variance_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import median_absolute_error
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
+from bayes_opt import BayesianOptimization
+from sklearn.model_selection import cross_val_score
 import lightgbm as lgb
 from lightgbm import LGBMRegressor
 
@@ -28,7 +26,7 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 
 
 # In[2]:
-
+# Reading datasets
 
 data13 = pd.read_csv('C://Users//ASUSNB//Desktop//THesis//Data//Yillik//YillikFiltreli//kiraci13.csv', sep = ";")
 data14 = pd.read_csv('C://Users//ASUSNB//Desktop//THesis//Data//Yillik//YillikFiltreli//kiraci14.csv', sep = ";")
@@ -39,7 +37,7 @@ data18 = pd.read_csv('C://Users//ASUSNB//Desktop//THesis//Data//Yillik//YillikFi
 
 
 # In[3]:
-
+# Imputing categorical variables with "999999" (A new subcategory for missing values)
 
 datas = [data13, data14, data15, data16, data17, data18]
 datalar = [i for i in datas]
@@ -58,31 +56,25 @@ for i in datas:
     i['RealtyHeatingID'].fillna(99999, inplace=True)
     
 data13.info()
-
+# Merging datasets
 data_1318 = pd.concat([data13, data14, data15, data16, data17, data18])
 
 
 # In[4]:
-
+#Generating DistrictMedian and MonthMedian variables.
 
 data_1318['DistrictMedian'] = data_1318.groupby('DistrictID').SqmPrice.transform('median')
 data_1318['MonthMedian'] = data_1318.groupby('Month').SqmPrice.transform('median')
 
 
 # In[5]:
-
-
-data13.info()
-
-
-# In[6]:
-
+#Checking variable information if everything goes correct until this point.
 
 data_1318.info()
 
 
-# In[7]:
-
+# In[6]:
+#Specifying dependent and independent variables. Dropped variables are un-used features except "SqmPrice", the target value.
 
 X = data_1318.drop(['CountyID', 'RealtySubCategoryID', 'SqmPrice', 'DistrictID', 'CountyName', 'DistrictName', 'Age_Miss', 'FloorCount_Miss',
                     'PriceTL', 'RealtyEndDateTime', 'RealtyID', 'Tarihx', 'Month', 'RealtyPriceCurrencyID', 'Residence_Miss',
@@ -90,14 +82,8 @@ X = data_1318.drop(['CountyID', 'RealtySubCategoryID', 'SqmPrice', 'DistrictID',
 Y = data_1318['SqmPrice']
 
 
-# In[8]:
-
-
-X.info()
-
-
-# In[9]:
-
+# In[7]:
+#Converting data types, specifying categorical variables as "object".
 
 X.RealtyResidenceID = X.RealtyResidenceID.astype('object')
 X.RealtyPublishID = X.RealtyPublishID.astype('object')
@@ -113,216 +99,130 @@ X.RealtyIsHousingComplex = X.RealtyIsHousingComplex.astype('object')
 X.Year = X.Year.astype('object')
 
 
-# In[10]:
-
-
-X.info()
-
-
-# In[11]:
-
+# In[8]:
+# Generating dummy variables from each subcategories of categorical variables.
 
 X = pd.concat([X, pd.get_dummies(X.select_dtypes(include='object'))], axis=1)
+# Dropping the original categorical variables
 X = X.drop(['RealtyPublishID', 'RealtyResidenceID', 'RealtyFloorID', 'RealtyHeatingID',
            'RealtyFuelID', 'RealtyBuildID', 'RealtyBuildStateID', 'RealtyUsageID', 'RealtyIsStudentOrSingle', 'RealtyCloseID', 'RealtyPriceShow',
            'RealtyIsHousingComplex','Year'], axis=1)
 X.info()
 
 
-# In[12]:
-
+# In[9]:
+# Randomly splitting dataset into training and test sets.
 
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
 
 
-# In[ ]:
+# In[10]:
+# Calling explained variance score
 
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[13]:
-
-
-xgb_reg = LGBMRegressor(subsample_freq=1, feature_fraction=0.6969, num_leaves=7867, learning_rate = 0.005, 
-                        bagging_fraction=0.3895,colsample_bytree=0.9049,
-                       subsample = 0.8073, max_depth = 17, n_estimators = 3340)
-
-xgb_reg.fit(X_train, Y_train)
-
-predict_train = xgb_reg.predict(X_train)
-predict_test = xgb_reg.predict(X_test)
-
-
-mae_xgb_test = mean_absolute_error(predict_test, Y_test)
-mse_xgb_test = mean_squared_error(predict_test, Y_test)
-rmse_xgb_test = np.sqrt(mse_xgb_test)
-
-print('Mean Absolute Error (MAE_xgb_test): %.2f' % mae_xgb_test)
-print('Mean Squared Error (MSE_xgb_test): %.2f' % mse_xgb_test)
-print('Root Mean Squared Error (RMSE_xgb_test): %.2f' % rmse_xgb_test)
-
-print('++++')
-
-mae_xgb_train = mean_absolute_error(predict_train, Y_train)
-mse_xgb_train = mean_squared_error(predict_train, Y_train)
-rmse_xgb_train = np.sqrt(mse_xgb_train)
-
-print('Mean Absolute Error (MAE_xgb_test): %.2f' % mae_xgb_train)
-print('Mean Squared Error (MSE_xgb_test): %.2f' % mse_xgb_train)
-print('Root Mean Squared Error (RMSE_xgb_test): %.2f' % rmse_xgb_train)
-
-print('++++')
-
-print("MAPE_xgb")
-print("Train : ",np.mean(np.abs((Y_train - predict_train) / Y_train)) * 100)
-print("Test  : ",np.mean(np.abs((Y_test - predict_test) / Y_test)) * 100)
-
-
-# In[14]:
-
-
-plt.figure(figsize=(12, 6))
-
-ranking2 = xgb_reg.feature_importances_
-features2 = np.argsort(ranking2)[::-1][:11]
-columns2 = X.columns
-
-plt.title("Feature importances based on LGBM2", y = 1.03, size = 18)
-plt.bar(range(len(features2)), ranking2[features2], color="aqua", align="center")
-plt.xticks(range(len(features2)), columns2[features2], rotation=80)
-plt.show()
-
-
-# In[16]:
-
-
-mdape_lgb_test = median_absolute_error(predict_test, Y_test)
-mdape_lgb_train = median_absolute_error(predict_train, Y_train)
-print('Median Absolute Error (MdAPE_lgb_test): %.2f' % mdape_lgb_test)
-print('Median Absolute Error (MdAPE_lgb_train): %.2f' % mdape_lgb_train)
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[15]:
-
-
-rom sklearn.metrics import r2_score
+from sklearn.metrics import r2_score
 import warnings
 warnings.filterwarnings('ignore')
 
-
-dtrain = lgb.Dataset(data=X_train, label=Y_train)
-
+# Defining our own explained variance, since LGBRegressor cannot read "explained_variance"
 def lgb_r2_score(preds, dtrain):
     labels = dtrain.get_label()
     return 'r2', explained_variance_score(labels, preds), True
 
-# Objective Function
-def hyp_lgbm(num_leaves, n_estimators, learning_rate,min_split_gain, feature_fraction, bagging_fraction, max_depth):
-      
-        params = {'application':'regression','num_iterations': 1000,
-                  'early_stopping_round':60,
-                  'metric':'lgb_r2_score'} # Default parameters
-        params["num_leaves"] = int(round(num_leaves))
+# In[11]:
+# converting train dataset to matrix
+dtrain = lgb.Dataset(data=X_train, label=Y_train, params={'verbose': -1}, free_raw_data=False)
+
+# In[12]:
+
+#defining hyperparameter set
+def hyp_lgbm(subsample, num_leaves, n_estimators, colsample_bytree, feature_fraction, bagging_fraction, max_depth):
+        #fixed hyperparameters
+        params = {'application':'regression','subsample_freq':1, 'learning_rate':0.005, 'verbose': -1,
+                  'early_stopping_round':50,
+                  'metric':'lgb_r2_score'}
+        #optimized hyperparameters
+        params["subsample"] = max(min(subsample, 1), 0)
+        params["num_leaves"] =  int(round(num_leaves))
+        params["colsample_bytree"] = max(min(colsample_bytree, 1), 0)
         params["n_estimators"] = int(round(n_estimators))
         params['feature_fraction'] = max(min(feature_fraction, 1), 0)
         params['bagging_fraction'] = max(min(bagging_fraction, 1), 0)
-        params['learning_rate'] = max(min(learning_rate, 1), 0)
-        params['min_split_gain'] = min_split_gain
         params['max_depth'] = int(round(max_depth))
+        #Setting LightGBM's 5-fold CV, metric "l2" is "RMSE".
         cv_results = lgb.cv(params, dtrain, nfold=5, seed=17,categorical_feature=[], stratified=False,
-                            verbose_eval =None, feval=lgb_r2_score)
-        # print(cv_results)
-        return np.mean(cv_results['r2-mean'])
+                            verbose_eval =False, metrics = 'l2')
+        # Multiplying by -1.0 is necessary, since Bayesian optimization is maximizing the solution
+        return  -1 * np.mean(cv_results['l2-mean'])
+        # We repeat the same process with explained variance by using the explained variance definition we have described before
+        # cv_results = lgb.cv(params, dtrain, nfold=5, seed=17,categorical_feature=[], stratified=False,verbose_eval =None, 
+        #feval=lgb_r2_score)
+        # return np.max(cv_results['r2-mean'])
 
-pds = {'num_leaves': (60, 10000),
-       'feature_fraction': (0.001, 1.0),
-       'bagging_fraction': (0.001, 1),
-       'max_depth': (5, 15),
-       'n_estimators': (200, 10000),
-       'min_split_gain': (0.001, 0.1),
-       'learning_rate': (0.0001, 0.35)
+# Setting the ranges of parameters for optimization
+pds = {'colsample_bytree': (0.0, 1),
+       'num_leaves': (100, 12000),
+       'subsample': (0.0, 1),
+       'feature_fraction': (0.0, 1.0),
+       'bagging_fraction': (0.0, 1),
+       'max_depth': (6, 20),
+       'n_estimators': (1000, 4000)
           }
 
+# Optimization function
+optimizer = BayesianOptimization(hyp_lgbm,pds,random_state=7)
 
-# In[ ]:
-
-
-optimizer2 = BayesianOptimization(hyp_lgbm,pds,random_state=7)
-                                  
-# Optimize
-optimizer2.maximize(init_points=3, n_iter=100)
+# Optimizing the Bayesian function with 80 iterations
+optimizer.maximize(init_points=3, n_iter=80)
 
 
-# In[ ]:
 
 
-lgb_reg = LGBMRegressor(feature_fraction=0.4229, learning_rate = 0.1393, bagging_fraction=0.6746,
-                        num_leaves=7791, max_depth = 15, n_estimators = 250)
 
+# In[12]:
+# Setting optimized hyperparameters to the LGBMRegressor function
+
+lgb_reg = LGBMRegressor(subsample_freq=1, feature_fraction=0.6969, num_leaves=7867, learning_rate = 0.005, 
+                        bagging_fraction=0.3895,colsample_bytree=0.9049,
+                       subsample = 0.8073, max_depth = 17, n_estimators = 3340)
+
+# Training the model
 lgb_reg.fit(X_train, Y_train)
 
+# Predict the target values for both training and test sets
 predict_train = lgb_reg.predict(X_train)
 predict_test = lgb_reg.predict(X_test)
 
 
+# Compute the metrics for test set
 mae_lgb_test = mean_absolute_error(predict_test, Y_test)
 mse_lgb_test = mean_squared_error(predict_test, Y_test)
 rmse_lgb_test = np.sqrt(mse_lgb_test)
 
-print('Mean Absolute Error (MAE_xgb_test): %.2f' % mae_xgb_test)
-print('Mean Squared Error (MSE_xgb_test): %.2f' % mse_xgb_test)
-print('Root Mean Squared Error (RMSE_xgb_test): %.2f' % rmse_xgb_test)
-
-
+print('Mean Absolute Error (MAE_lgb_test): %.2f' % mae_lgb_test)
+print('Mean Squared Error (MSE_lgb_test): %.2f' % mse_lgb_test)
+print('Root Mean Squared Error (RMSE_lgb_test): %.2f' % rmse_lgb_test)
 
 print('++++')
 
+# Compute the metrics for training set
 mae_lgb_train = mean_absolute_error(predict_train, Y_train)
 mse_lgb_train = mean_squared_error(predict_train, Y_train)
 rmse_lgb_train = np.sqrt(mse_lgb_train)
 
-
-print('Mean Absolute Error (MAE_xgb_train): %.2f' % mae_xgb_train)
-print('Mean Squared Error (MSE_xgb_train): %.2f' % mse_xgb_train)
-print('Root Mean Squared Error (RMSE_xgb_train): %.2f' % rmse_xgb_train)
-
+print('Mean Absolute Error (MAE_lgb_test): %.2f' % mae_lgb_train)
+print('Mean Squared Error (MSE_lgb_test): %.2f' % mse_lgb_train)
+print('Root Mean Squared Error (RMSE_lgb_test): %.2f' % rmse_lgb_train)
 
 print('++++')
 
-print("MAPE_xgb")
+## MAPE results
+print("MAPE_lgb")
 print("Train : ",np.mean(np.abs((Y_train - predict_train) / Y_train)) * 100)
 print("Test  : ",np.mean(np.abs((Y_test - predict_test) / Y_test)) * 100)
 
-print('----')
 
-
-# In[ ]:
-
+# In[13]:
+# Visualization of the feature importance
 
 plt.figure(figsize=(12, 6))
 

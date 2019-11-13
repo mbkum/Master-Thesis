@@ -26,7 +26,7 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 
 
 # In[2]:
-# Uploading datasets
+# Reading datasets
 
 data13 = pd.read_csv('C://Users//ASUSNB//Desktop//THesis//Data//Yillik//YillikFiltreli//kiraci13.csv', sep = ";")
 data14 = pd.read_csv('C://Users//ASUSNB//Desktop//THesis//Data//Yillik//YillikFiltreli//kiraci14.csv', sep = ";")

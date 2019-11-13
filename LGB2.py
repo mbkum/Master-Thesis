@@ -139,8 +139,9 @@ def hyp_lgbm(subsample, num_leaves, n_estimators, colsample_bytree, feature_frac
         #fixed hyperparameters
         params = {'application':'regression','subsample_freq':1, 'learning_rate':0.005, 'verbose': -1,
                   'early_stopping_round':50,
-                  'metric':'lgb_r2_score'}
-        #optimized hyperparameters
+                  'metric':'l2'}
+        # metric':'lgb_r2_score' is used as fixed parameter, if the r2_score is used as feval
+        # optimized hyperparameters
         params["subsample"] = max(min(subsample, 1), 0)
         params["num_leaves"] =  int(round(num_leaves))
         params["colsample_bytree"] = max(min(colsample_bytree, 1), 0)
